@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String  @map("user_id")
+  type               String
+  provider           String
+  providerAccountId  String  @map("provider_account_id")
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String   
+  emailVerified DateTime? @map("email_verified")
+  username      String @unique
+  password      String
+  role          String @default("user")
+  accounts      Account[]
+  sessions      Session[]
+  perangkat     PeminjamanPerangkat[]
+  ruangan       PeminjamanRuangan[]
+
+  @@map("users")
+}
+
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Perangkat {
+  id              String @id @default(cuid())
+  img_url         String
+  nama            String
+  description     String @db.Text
+  tersedia        Int @default(0)
+  dipinjam        Int @default(0)
+  jumlah          Int @default(0)
+  status          Boolean @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  peminjaman      PeminjamanPerangkat[]
+}
+
+model Ruangan {
+  id              String @id @default(cuid())
+  name            String
+  lokasi          String
+  img_url         String
+  description     String @db.Text
+  tersedia        Boolean @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  peminjaman      PeminjamanRuangan[]
+}
+
+model PeminjamanPerangkat {
+  id              String @id @default(cuid())
+  userId          String
+  jenis           String @default("perangkat")
+  perangkatId     String
+  jumlah          Int
+  tgl_mulai       DateTime
+  tgl_selesai     DateTime
+  isDipinjam      Boolean @default(true)
+  keterangan      String @db.Text
+  status          Status @default(Diproses)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user            User @relation(fields: [userId], references: [id], onDelete: NoAction)
+  perangkat       Perangkat @relation(fields: [perangkatId], references: [id], onDelete: NoAction)
+
+  @@map("peminjaman_perangkat")
+}
+
+model PeminjamanRuangan {
+  id              String @id @default(cuid())
+  userId          String
+  jenis           String @default("ruangan")
+  ruanganId       String
+  tgl_mulai       DateTime
+  tgl_selesai     DateTime
+  isDipinjam      Boolean @default(true)
+  keterangan      String @db.Text
+  status          Status @default(Diproses)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user            User @relation(fields: [userId], references: [id], onDelete: NoAction)
+  ruangan         Ruangan @relation(fields: [ruanganId], references: [id], onDelete: NoAction)
+
+  @@map("peminjaman_ruangan")
+}
+
+enum Status {
+  Diproses
+  Dipinjam
+  Ditolak
+  Selesai
+}
+
+// model Request {
+//   id              String @id @default(cuid())
+  
+// }
